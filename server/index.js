@@ -1,5 +1,5 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
 const cors = require('cors');
 require('dotenv').config();
 
@@ -9,80 +9,56 @@ app.use(express.json());
 
 const STATUS_FLOW = ['placed', 'packed', 'shipped', 'delivered'];
 
-// Use SQLite for "Plug & Play" - Works without any setup!
-// If you want to use MySQL, you can easily swap this out.
-const db = new sqlite3.Database('./database.sqlite', (err) => {
-    if (err) {
-        console.error('Database opening error:', err.message);
-    } else {
-        console.log('Connected to SQLite Database (database.sqlite)');
-        db.run(`CREATE TABLE IF NOT EXISTS orders (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            customer_name TEXT NOT NULL,
-            item TEXT NOT NULL,
-            status TEXT DEFAULT 'placed',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )`, (err) => {
-            if (err) console.error('Table creation error:', err.message);
-            else console.log('Orders table verified/created');
-        });
-    }
-});
+// Initialize better-sqlite3
+const db = new Database('./database.sqlite', { verbose: console.log });
+console.log('Connected to SQLite Database via better-sqlite3');
 
-// Helper for SQLite promises
-const dbQuery = (query, params = []) => {
-    return new Promise((resolve, reject) => {
-        db.all(query, params, (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows);
-        });
-    });
-};
-
-const dbRun = (query, params = []) => {
-    return new Promise((resolve, reject) => {
-        db.run(query, params, function(err) {
-            if (err) reject(err);
-            else resolve({ lastID: this.lastID, changes: this.changes });
-        });
-    });
-};
+// Create table if not exists
+db.exec(`
+    CREATE TABLE IF NOT EXISTS orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_name TEXT NOT NULL,
+        item TEXT NOT NULL,
+        status TEXT DEFAULT 'placed',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+`);
+console.log('Orders table verified/created');
 
 // Routes
-app.post('/orders', async (req, res) => {
+app.post('/orders', (req, res) => {
     const { customer_name, item } = req.body;
     if (!customer_name || !item) {
         return res.status(400).json({ error: 'Customer name and item are required' });
     }
 
     try {
-        const result = await dbRun(
-            'INSERT INTO orders (customer_name, item, status) VALUES (?, ?, ?)',
-            [customer_name, item, 'placed']
-        );
-        const orders = await dbQuery('SELECT * FROM orders WHERE id = ?', [result.lastID]);
-        res.status(201).json(orders[0]);
+        const insert = db.prepare('INSERT INTO orders (customer_name, item, status) VALUES (?, ?, ?)');
+        const result = insert.run(customer_name, item, 'placed');
+        
+        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(result.lastInsertRowid);
+        res.status(201).json(order);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.get('/orders', async (req, res) => {
+app.get('/orders', (req, res) => {
     try {
-        const rows = await dbQuery('SELECT * FROM orders ORDER BY created_at DESC');
+        const rows = db.prepare('SELECT * FROM orders ORDER BY created_at DESC').all();
         res.json(rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.put('/orders/:id', async (req, res) => {
+app.put('/orders/:id', (req, res) => {
     const { id } = req.params;
     try {
-        const orders = await dbQuery('SELECT status FROM orders WHERE id = ?', [id]);
-        if (orders.length === 0) return res.status(404).json({ error: 'Order not found' });
+        const order = db.prepare('SELECT status FROM orders WHERE id = ?').get(id);
+        if (!order) return res.status(404).json({ error: 'Order not found' });
 
-        const currentStatus = orders[0].status;
+        const currentStatus = order.status;
         const currentIndex = STATUS_FLOW.indexOf(currentStatus);
 
         if (currentIndex === STATUS_FLOW.length - 1) {
@@ -90,10 +66,10 @@ app.put('/orders/:id', async (req, res) => {
         }
 
         const nextStatus = STATUS_FLOW[currentIndex + 1];
-        await dbRun('UPDATE orders SET status = ? WHERE id = ?', [nextStatus, id]);
+        db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(nextStatus, id);
         
-        const updated = await dbQuery('SELECT * FROM orders WHERE id = ?', [id]);
-        res.json(updated[0]);
+        const updated = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
+        res.json(updated);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
