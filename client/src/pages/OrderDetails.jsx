@@ -67,13 +67,13 @@ const OrderDetails = () => {
       setOrder(updated);
 
       if (updated.status === 'delivered') {
-        toast.success(`🎉 Order delivered successfully!`, {
+        toast.success(` Order delivered successfully!`, {
           duration: 5000,
-          icon: '✨'
+          icon: ''
         });
       } else {
-        toast.success(`🔄 Status updated to ${updated.status}`, {
-          icon: '✅'
+        toast.success(` Status updated to ${updated.status}`, {
+          icon: ''
         });
       }
     } catch (err) {
