@@ -1,48 +1,54 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Package, ClipboardList, PlusCircle } from 'lucide-react';
+import { Package, ClipboardList, PlusCircle, Globe } from 'lucide-react';
 
 const Navbar = ({ hasUnread, setHasUnread }) => {
   const location = useLocation();
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 py-4 px-8 mb-4">
+    <nav className="sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-slate-100/50 py-5 px-8">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         {/* Left: Logo */}
-        <Link to="/" className="flex items-center gap-2 group">
-          <div className="bg-indigo-600 p-2 rounded-xl group-hover:rotate-12 transition-transform duration-300">
-            <Package className="text-white w-6 h-6" />
+        <Link to="/" className="flex items-center gap-3 group">
+          <div className="relative">
+            <div className="absolute inset-0 bg-indigo-500 rounded-xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity" />
+            <div className="relative bg-indigo-600 p-2.5 rounded-xl group-hover:rotate-12 group-hover:scale-110 transition-all duration-500 shadow-lg shadow-indigo-600/20">
+              <Package className="text-white w-5 h-5" />
+            </div>
           </div>
-          <h1 className="text-xl font-black tracking-tight text-slate-800">
-            ORDER<span className="text-indigo-600">TRACKER</span>
-          </h1>
+          <div className="flex flex-col leading-none">
+            <h1 className="text-xl font-black tracking-tighter text-slate-900">
+              SHIP<span className="text-indigo-600">STATION</span>
+            </h1>
+            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-400">Global Tracker</span>
+          </div>
         </Link>
 
         {/* Right: Navigation */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           <Link 
             to="/" 
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all ${
+            className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${
               location.pathname === '/' 
-              ? 'bg-indigo-50 text-indigo-600' 
-              : 'text-slate-600 hover:bg-slate-50'
+              ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' 
+              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
             }`}
           >
-            <PlusCircle className="w-5 h-5" />
-            <span>New Order</span>
+            <PlusCircle className="w-4 h-4" />
+            <span className="hidden sm:inline">New Dispatch</span>
           </Link>
 
           <Link 
             to="/orders" 
             onClick={() => setHasUnread(false)}
-            className={`relative flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all ${
+            className={`relative flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${
               location.pathname === '/orders' 
-              ? 'bg-indigo-50 text-indigo-600' 
-              : 'text-slate-600 hover:bg-slate-50'
+              ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' 
+              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
             }`}
           >
-            <ClipboardList className="w-5 h-5" />
-            <span>Order Status</span>
+            <ClipboardList className="w-4 h-4" />
+            <span className="hidden sm:inline">Registry</span>
             
             {hasUnread && location.pathname !== '/orders' && (
               <span className="absolute -top-1 -right-1 flex h-4 w-4">
@@ -51,6 +57,12 @@ const Navbar = ({ hasUnread, setHasUnread }) => {
               </span>
             )}
           </Link>
+
+          <div className="h-8 w-[1px] bg-slate-100 mx-2 hidden md:block" />
+          
+          <button className="hidden md:flex items-center gap-2 p-2 rounded-xl text-slate-400 hover:bg-slate-50 hover:text-indigo-600 transition-all">
+            <Globe className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </nav>
@@ -58,3 +70,4 @@ const Navbar = ({ hasUnread, setHasUnread }) => {
 };
 
 export default Navbar;
+
